@@ -10,6 +10,9 @@
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
+    <!-- Leaflet Heat Plugin -->
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+
     <!-- カスタムスタイル -->
     <link rel="stylesheet" href="css/styles.css">
 </head>
@@ -101,22 +104,24 @@
             <!-- おすすめルートセクション -->
             <section class="sidebar-section">
                 <h3>🚶 おすすめルート</h3>
-                <div class="filter-group">
-                    <div class="filter-item">
-                        <span class="icon">🏛️</span>
-                        <span class="label">歴史めぐりコース</span>
-                        <span class="count">2時間</span>
-                    </div>
-                    <div class="filter-item">
-                        <span class="icon">🌊</span>
-                        <span class="label">海辺の散策コース</span>
-                        <span class="count">1.5時間</span>
-                    </div>
-                    <div class="filter-item">
-                        <span class="icon">🏃</span>
-                        <span class="label">健康ウォーキング</span>
-                        <span class="count">5km</span>
-                    </div>
+                <div class="filter-group" id="routes-container">
+                    <!-- ルートは動的に追加されます -->
+                </div>
+            </section>
+
+            <!-- 天気情報セクション -->
+            <section class="sidebar-section">
+                <h3>🌤️ 天気情報</h3>
+                <div id="weather-info" class="weather-card">
+                    <div class="weather-loading">読み込み中...</div>
+                </div>
+            </section>
+
+            <!-- お気に入りセクション -->
+            <section class="sidebar-section">
+                <h3>⭐ お気に入り</h3>
+                <div id="favorites-container">
+                    <p class="empty-state">お気に入りはまだありません</p>
                 </div>
             </section>
 
@@ -155,7 +160,15 @@
                 <button class="quick-filter-btn emergency active" data-filter="emergency">
                     🚨 防災
                 </button>
+                <button class="quick-filter-btn heatmap" data-filter="heatmap">
+                    🔥 混雑度
+                </button>
             </div>
+
+            <!-- シェアボタン -->
+            <button id="share-btn" class="floating-btn share-btn" title="シェア">
+                📤
+            </button>
 
             <!-- 地図表示エリア -->
             <div id="map"></div>

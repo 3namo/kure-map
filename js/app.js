@@ -1,5 +1,5 @@
 /**
- * くれウェルビーイングマップ - メインアプリケーション
+ * くれウェルビーイングマップ v2.1 - Phase 2対応
  * 呉市の住民と観光客のウェルビーイング向上を目指す総合地図アプリ
  */
 
@@ -30,7 +30,13 @@ const CONFIG = {
         tourism: 'data/tourism-spots.json',
         facilities: 'data/facilities.json',
         emergency: 'data/emergency.json',
-        events: 'data/events.json'
+        events: 'data/events.json',
+        routes: 'data/routes.json',
+        crowding: 'data/crowding-data.json'
+    },
+    weather: {
+        // サンプル天気データ（実際はAPIから取得）
+        apiEnabled: false
     }
 };
 
@@ -50,7 +56,9 @@ let allData = {
     tourism: [],
     facility: [],
     emergency: [],
-    event: []
+    event: [],
+    routes: [],
+    crowding: []
 };
 let activeFilters = {
     wifi: true,
@@ -59,6 +67,13 @@ let activeFilters = {
     emergency: true,
     event: true
 };
+
+// Phase 2: 新機能用の変数
+let currentRoute = null;
+let routePolyline = null;
+let routeMarkers = [];
+let heatmapLayer = null;
+let favorites = [];
 
 // =====================
 // 初期化
@@ -71,6 +86,9 @@ async function initializeApp() {
     try {
         showLoading(true);
 
+        // LocalStorageからお気に入りを読み込み
+        loadFavoritesFromStorage();
+
         // 地図の初期化
         map = initializeMap();
 
@@ -80,11 +98,26 @@ async function initializeApp() {
         // マーカーの表示
         renderAllMarkers();
 
+        // ルートの表示
+        renderRoutes();
+
         // 統計情報の更新
         updateStatistics();
 
+        // 天気情報の表示
+        displayWeatherInfo();
+
+        // お気に入りの表示
+        renderFavorites();
+
         // イベントリスナーの設定
         setupEventListeners();
+
+        // シェアモーダルの追加
+        createShareModal();
+
+        // ルートコントロールの追加
+        createRouteControls();
 
         showLoading(false);
     } catch (error) {
@@ -122,32 +155,27 @@ function initializeMap() {
  */
 async function loadAllData() {
     try {
-        const [wifiData, tourismData, facilitiesData, emergencyData, eventsData] = await Promise.all([
+        const [wifiData, tourismData, facilitiesData, emergencyData, eventsData, routesData, crowdingData] = await Promise.all([
             fetchData(CONFIG.dataFiles.wifi),
             fetchData(CONFIG.dataFiles.tourism),
             fetchData(CONFIG.dataFiles.facilities),
             fetchData(CONFIG.dataFiles.emergency),
-            fetchData(CONFIG.dataFiles.events)
+            fetchData(CONFIG.dataFiles.events),
+            fetchData(CONFIG.dataFiles.routes),
+            fetchData(CONFIG.dataFiles.crowding)
         ]);
 
-        // Wi-Fiデータの処理
         allData.wifi = wifiData['2025/10/01'] || [];
-
-        // 観光スポットデータの処理
         allData.tourism = tourismData.spots || [];
-
-        // 施設データの処理
         allData.facility = facilitiesData.facilities || [];
-
-        // 防災・緊急データの処理
         allData.emergency = emergencyData.facilities || [];
-
-        // イベントデータの処理（現在開催中のものをフィルタ）
         allData.event = (eventsData.events || []).filter(event => {
             const today = new Date();
             const endDate = new Date(event.endDate);
             return endDate >= today;
         });
+        allData.routes = routesData.routes || [];
+        allData.crowding = crowdingData.facilities || [];
 
     } catch (error) {
         console.error('データ読み込みエラー:', error);
@@ -274,6 +302,408 @@ function renderEventMarkers() {
 }
 
 // =====================
+// Phase 2: ルート機能
+// =====================
+
+/**
+ * ルート一覧を表示
+ */
+function renderRoutes() {
+    const container = document.getElementById('routes-container');
+    container.innerHTML = '';
+
+    allData.routes.forEach(route => {
+        const routeItem = document.createElement('div');
+        routeItem.className = 'route-item';
+        routeItem.dataset.routeId = route.id;
+        routeItem.innerHTML = `
+            <span class="icon">${route.icon}</span>
+            <div class="route-info">
+                <div class="route-name">${route.name}</div>
+                <div class="route-details">${route.duration} | ${route.distance}</div>
+            </div>
+        `;
+
+        routeItem.addEventListener('click', () => showRoute(route));
+        container.appendChild(routeItem);
+    });
+}
+
+/**
+ * ルートをマップ上に表示
+ */
+function showRoute(route) {
+    // 既存のルートをクリア
+    clearRoute();
+
+    // ルートをアクティブに設定
+    currentRoute = route;
+
+    // UIの更新
+    document.querySelectorAll('.route-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    document.querySelector(`[data-route-id="${route.id}"]`).classList.add('active');
+
+    // ポリラインを描画
+    routePolyline = L.polyline(route.polyline, {
+        color: route.color,
+        weight: 5,
+        opacity: 0.7,
+        smoothFactor: 1
+    }).addTo(map);
+
+    // ウェイポイントマーカーを追加
+    route.waypoints.forEach((waypoint, index) => {
+        const marker = L.marker([waypoint.latitude, waypoint.longitude], {
+            icon: L.divIcon({
+                className: 'route-waypoint-marker',
+                html: `<div style="background: ${route.color}; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">${index + 1}</div>`,
+                iconSize: [30, 30],
+                iconAnchor: [15, 15]
+            })
+        }).bindPopup(createRouteWaypointPopup(waypoint)).addTo(map);
+
+        routeMarkers.push(marker);
+    });
+
+    // ルートにフィット
+    map.fitBounds(routePolyline.getBounds(), { padding: [50, 50] });
+
+    // ルートコントロールを表示
+    showRouteControls(route);
+}
+
+/**
+ * ルートをクリア
+ */
+function clearRoute() {
+    if (routePolyline) {
+        map.removeLayer(routePolyline);
+        routePolyline = null;
+    }
+
+    routeMarkers.forEach(marker => map.removeLayer(marker));
+    routeMarkers = [];
+
+    currentRoute = null;
+
+    document.querySelectorAll('.route-item').forEach(item => {
+        item.classList.remove('active');
+    });
+
+    hideRouteControls();
+}
+
+/**
+ * ルートコントロールを作成
+ */
+function createRouteControls() {
+    const controls = document.createElement('div');
+    controls.className = 'route-controls';
+    controls.id = 'route-controls';
+    controls.innerHTML = `
+        <span class="route-name-display"></span>
+        <button id="clear-route-btn">ルートを消去</button>
+    `;
+    document.getElementById('map-container').appendChild(controls);
+
+    document.getElementById('clear-route-btn').addEventListener('click', clearRoute);
+}
+
+/**
+ * ルートコントロールを表示
+ */
+function showRouteControls(route) {
+    const controls = document.getElementById('route-controls');
+    controls.querySelector('.route-name-display').textContent = route.name;
+    controls.classList.add('show');
+}
+
+/**
+ * ルートコントロールを非表示
+ */
+function hideRouteControls() {
+    document.getElementById('route-controls').classList.remove('show');
+}
+
+/**
+ * ルートウェイポイントのポップアップを作成
+ */
+function createRouteWaypointPopup(waypoint) {
+    return `
+        <div class="route-waypoint-popup">
+            <h4>${waypoint.name}</h4>
+            <p>${waypoint.description}</p>
+            ${waypoint.stayDuration ? `<span class="stay-duration">滞在時間: ${waypoint.stayDuration}分</span>` : ''}
+        </div>
+    `;
+}
+
+// =====================
+// Phase 2: ヒートマップ機能
+// =====================
+
+/**
+ * ヒートマップを表示/非表示
+ */
+function toggleHeatmap() {
+    if (heatmapLayer) {
+        // 既に表示されている場合は削除
+        map.removeLayer(heatmapLayer);
+        heatmapLayer = null;
+        return;
+    }
+
+    // ヒートマップデータを準備
+    const heatData = allData.crowding.map(facility => {
+        return [
+            parseFloat(facility.latitude),
+            parseFloat(facility.longitude),
+            facility.crowdingLevel / 100
+        ];
+    });
+
+    // ヒートマップレイヤーを作成
+    heatmapLayer = L.heatLayer(heatData, {
+        radius: 40,
+        blur: 50,
+        maxZoom: 15,
+        max: 1.0,
+        gradient: {
+            0.0: '#4CAF50',
+            0.5: '#FFC107',
+            0.7: '#FF9800',
+            1.0: '#F44336'
+        }
+    }).addTo(map);
+}
+
+// =====================
+// Phase 2: お気に入り機能
+// =====================
+
+/**
+ * LocalStorageからお気に入りを読み込み
+ */
+function loadFavoritesFromStorage() {
+    const stored = localStorage.getItem('kure-map-favorites');
+    if (stored) {
+        try {
+            favorites = JSON.parse(stored);
+        } catch (e) {
+            favorites = [];
+        }
+    }
+}
+
+/**
+ * お気に入りをLocalStorageに保存
+ */
+function saveFavoritesToStorage() {
+    localStorage.setItem('kure-map-favorites', JSON.stringify(favorites));
+}
+
+/**
+ * お気に入りに追加/削除
+ */
+function toggleFavorite(item) {
+    const index = favorites.findIndex(fav => fav.id === item.id && fav.category === item.category);
+
+    if (index >= 0) {
+        // 削除
+        favorites.splice(index, 1);
+    } else {
+        // 追加
+        favorites.push({
+            id: item.id,
+            category: item.category,
+            name: item.name || item.Wifi名,
+            latitude: item.latitude || item.緯度,
+            longitude: item.longitude || item.経度
+        });
+    }
+
+    saveFavoritesToStorage();
+    renderFavorites();
+}
+
+/**
+ * お気に入り一覧を表示
+ */
+function renderFavorites() {
+    const container = document.getElementById('favorites-container');
+
+    if (favorites.length === 0) {
+        container.innerHTML = '<p class="empty-state">お気に入りはまだありません</p>';
+        return;
+    }
+
+    container.innerHTML = '';
+    favorites.forEach(fav => {
+        const item = document.createElement('div');
+        item.className = 'favorite-item';
+        item.innerHTML = `
+            <div class="favorite-item-info">
+                <div class="favorite-item-name">${fav.name}</div>
+                <div class="favorite-item-category">${fav.category}</div>
+            </div>
+            <button class="favorite-btn active" onclick="removeFavorite('${fav.id}', '${fav.category}')">⭐</button>
+        `;
+
+        item.addEventListener('click', (e) => {
+            if (!e.target.classList.contains('favorite-btn')) {
+                map.setView([parseFloat(fav.latitude), parseFloat(fav.longitude)], 15);
+            }
+        });
+
+        container.appendChild(item);
+    });
+}
+
+/**
+ * お気に入りを削除
+ */
+function removeFavorite(id, category) {
+    favorites = favorites.filter(fav => !(fav.id === id && fav.category === category));
+    saveFavoritesToStorage();
+    renderFavorites();
+}
+
+// =====================
+// Phase 2: SNSシェア機能
+// =====================
+
+/**
+ * シェアモーダルを作成
+ */
+function createShareModal() {
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.id = 'share-modal';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📤 シェア</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <p style="color: #666; font-size: 14px; margin-bottom: 15px;">
+                くれウェルビーイングマップをシェアしましょう！
+            </p>
+            <div class="share-buttons">
+                <button class="share-button twitter" onclick="shareToTwitter()">
+                    🐦 Twitter
+                </button>
+                <button class="share-button facebook" onclick="shareToFacebook()">
+                    📘 Facebook
+                </button>
+                <button class="share-button line" onclick="shareToLine()">
+                    💬 LINE
+                </button>
+                <button class="share-button copy" onclick="copyToClipboard()">
+                    📋 URLコピー
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // モーダルを閉じる
+    modal.querySelector('.modal-close').addEventListener('click', () => {
+        modal.classList.remove('show');
+    });
+
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.classList.remove('show');
+        }
+    });
+}
+
+/**
+ * シェアモーダルを表示
+ */
+function showShareModal() {
+    document.getElementById('share-modal').classList.add('show');
+}
+
+/**
+ * Twitterにシェア
+ */
+function shareToTwitter() {
+    const url = encodeURIComponent(window.location.href);
+    const text = encodeURIComponent('くれウェルビーイングマップ - 呉市の総合地図アプリ');
+    window.open(`https://twitter.com/intent/tweet?url=${url}&text=${text}`, '_blank');
+}
+
+/**
+ * Facebookにシェア
+ */
+function shareToFacebook() {
+    const url = encodeURIComponent(window.location.href);
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, '_blank');
+}
+
+/**
+ * LINEにシェア
+ */
+function shareToLine() {
+    const url = encodeURIComponent(window.location.href);
+    const text = encodeURIComponent('くれウェルビーイングマップ');
+    window.open(`https://social-plugins.line.me/lineit/share?url=${url}&text=${text}`, '_blank');
+}
+
+/**
+ * URLをクリップボードにコピー
+ */
+function copyToClipboard() {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+        alert('URLをコピーしました！');
+    }).catch(() => {
+        alert('コピーに失敗しました');
+    });
+}
+
+// =====================
+// Phase 2: 天気情報機能
+// =====================
+
+/**
+ * 天気情報を表示（サンプルデータ）
+ */
+function displayWeatherInfo() {
+    const weatherContainer = document.getElementById('weather-info');
+
+    // サンプルデータ（実際はAPIから取得）
+    const weatherData = {
+        temp: 18,
+        description: '晴れ',
+        icon: '☀️',
+        humidity: 65,
+        wind: '3m/s'
+    };
+
+    weatherContainer.innerHTML = `
+        <div class="weather-main">
+            <div class="weather-icon">${weatherData.icon}</div>
+            <div class="weather-temp">${weatherData.temp}°</div>
+        </div>
+        <div class="weather-description">${weatherData.description}</div>
+        <div class="weather-details">
+            <div class="weather-detail-item">
+                <span>湿度</span>
+                <span>${weatherData.humidity}%</span>
+            </div>
+            <div class="weather-detail-item">
+                <span>風速</span>
+                <span>${weatherData.wind}</span>
+            </div>
+        </div>
+    `;
+}
+
+// =====================
 // マーカー作成ヘルパー
 // =====================
 
@@ -343,6 +773,8 @@ function getIconForEmergencyType(type) {
  * Wi-Fiスポットのポップアップを作成
  */
 function createWifiPopup(spot) {
+    const isFavorite = favorites.some(fav => fav.id === spot.Wifi名 && fav.category === 'wifi');
+
     return `
         <div class="popup-header" style="background: ${CONFIG.colors.wifi};">
             <h3>📶 ${spot.Wifi名}</h3>
@@ -356,6 +788,9 @@ function createWifiPopup(spot) {
             <div class="users">${spot.利用者数}人</div>
             <p style="font-size: 11px; color: #999; text-align: center;">2025年10月1日時点</p>
         </div>
+        <div class="popup-footer">
+            <button class="btn favorite-btn ${isFavorite ? 'active' : ''}" onclick="toggleFavoriteFromPopup('wifi', '${spot.Wifi名}', ${spot.緯度}, ${spot.経度})">${isFavorite ? '⭐' : '☆'} お気に入り</button>
+        </div>
     `;
 }
 
@@ -364,6 +799,7 @@ function createWifiPopup(spot) {
  */
 function createTourismPopup(spot) {
     const tags = spot.tags.map(tag => `<span class="tag">${tag}</span>`).join('');
+    const isFavorite = favorites.some(fav => fav.id === spot.id && fav.category === 'tourism');
 
     return `
         <div class="popup-header" style="background: ${CONFIG.colors.tourism};">
@@ -391,6 +827,9 @@ function createTourismPopup(spot) {
             ${spot.barrierFree ? '<div class="info-row"><span class="icon">♿</span><span>バリアフリー対応</span></div>' : ''}
             <div class="tags">${tags}</div>
         </div>
+        <div class="popup-footer">
+            <button class="btn favorite-btn ${isFavorite ? 'active' : ''}" onclick="toggleFavoriteFromPopup('tourism', '${spot.id}', ${spot.latitude}, ${spot.longitude})">${isFavorite ? '⭐' : '☆'} お気に入り</button>
+        </div>
     `;
 }
 
@@ -398,6 +837,8 @@ function createTourismPopup(spot) {
  * 施設のポップアップを作成
  */
 function createFacilityPopup(facility) {
+    const isFavorite = favorites.some(fav => fav.id === facility.id && fav.category === 'facility');
+
     return `
         <div class="popup-header" style="background: ${CONFIG.colors.facility};">
             <h3>${facility.name}</h3>
@@ -416,6 +857,9 @@ function createFacilityPopup(facility) {
             ${facility.phone ? `<div class="info-row"><span class="icon">📞</span><span>${facility.phone}</span></div>` : ''}
             ${facility.barrierFree ? '<div class="info-row"><span class="icon">♿</span><span>バリアフリー対応</span></div>' : ''}
             ${facility.wifi ? '<div class="info-row"><span class="icon">📶</span><span>Wi-Fi利用可</span></div>' : ''}
+        </div>
+        <div class="popup-footer">
+            <button class="btn favorite-btn ${isFavorite ? 'active' : ''}" onclick="toggleFavoriteFromPopup('facility', '${facility.id}', ${facility.latitude}, ${facility.longitude})">${isFavorite ? '⭐' : '☆'} お気に入り</button>
         </div>
     `;
 }
@@ -469,6 +913,24 @@ function createEventPopup(event) {
     `;
 }
 
+/**
+ * ポップアップからお気に入りを切り替え
+ */
+function toggleFavoriteFromPopup(category, id, latitude, longitude) {
+    const item = {
+        id: id,
+        category: category,
+        name: id,
+        latitude: latitude,
+        longitude: longitude
+    };
+
+    toggleFavorite(item);
+
+    // ポップアップを閉じて再表示
+    map.closePopup();
+}
+
 // =====================
 // フィルタリング
 // =====================
@@ -502,7 +964,7 @@ function toggleFilter(category) {
  * 統計情報を更新
  */
 function updateStatistics() {
-    const totalSpots = Object.values(allData).reduce((sum, arr) => sum + arr.length, 0);
+    const totalSpots = Object.values(allData).slice(0, 5).reduce((sum, arr) => sum + arr.length, 0);
     const wifiUsers = allData.wifi.reduce((sum, spot) => sum + parseInt(spot.利用者数), 0);
 
     document.getElementById('stat-total-spots').textContent = totalSpots;
@@ -510,7 +972,6 @@ function updateStatistics() {
     document.getElementById('stat-events').textContent = allData.event.length;
     document.getElementById('stat-facilities').textContent = allData.facility.length;
 
-    // カウントの更新
     document.getElementById('count-wifi').textContent = allData.wifi.length;
     document.getElementById('count-tourism').textContent = allData.tourism.length;
     document.getElementById('count-facility').textContent = allData.facility.length;
@@ -545,19 +1006,30 @@ function setupEventListeners() {
     document.querySelectorAll('.quick-filter-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             const filter = this.dataset.filter;
-            this.classList.toggle('active');
-            toggleFilter(filter);
 
-            // サイドバーのチェックボックスも同期
-            const checkbox = document.getElementById(`filter-${filter}`);
-            if (checkbox) {
-                checkbox.checked = activeFilters[filter];
+            if (filter === 'heatmap') {
+                // ヒートマップの切り替え
+                this.classList.toggle('active');
+                toggleHeatmap();
+            } else {
+                // 通常のフィルター
+                this.classList.toggle('active');
+                toggleFilter(filter);
+
+                // サイドバーのチェックボックスも同期
+                const checkbox = document.getElementById(`filter-${filter}`);
+                if (checkbox) {
+                    checkbox.checked = activeFilters[filter];
+                }
             }
         });
     });
 
     // 検索機能
     document.getElementById('search-input').addEventListener('input', handleSearch);
+
+    // シェアボタン
+    document.getElementById('share-btn').addEventListener('click', showShareModal);
 }
 
 /**
@@ -567,27 +1039,12 @@ function handleSearch(event) {
     const query = event.target.value.toLowerCase();
 
     if (query.length < 2) {
-        // 検索クリア - すべて表示
         renderAllMarkers();
         return;
     }
 
-    // 各カテゴリでフィルタリング
-    Object.keys(allData).forEach(category => {
-        markersLayer[category].clearLayers();
-
-        const filtered = allData[category].filter(item => {
-            const name = item.name || item.Wifi名 || '';
-            const address = item.address || item.設置場所住所 || item.location || '';
-            return name.toLowerCase().includes(query) || address.toLowerCase().includes(query);
-        });
-
-        // フィルタリングされた結果を表示
-        filtered.forEach(item => {
-            // ここでは簡略化のため、再レンダリングをスキップ
-            // 実装を完全にするには各タイプに応じたマーカーを再作成する必要があります
-        });
-    });
+    // 検索結果を表示
+    // （簡略版 - 実装を完全にするには各カテゴリ毎に再レンダリング）
 }
 
 // =====================

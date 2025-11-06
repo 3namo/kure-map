@@ -1,0 +1,95 @@
+{
+  "metadata": {
+    "name": "呉市人流・混雑データ",
+    "category": "crowding",
+    "lastUpdated": "2025-10-01T14:30:00",
+    "updateInterval": 1800,
+    "description": "主要施設の混雑度データ（サンプル）"
+  },
+  "facilities": [
+    {
+      "id": "crowd_001",
+      "name": "大和ミュージアム",
+      "latitude": 34.2401,
+      "longitude": 132.5495,
+      "currentCrowding": "medium",
+      "crowdingLevel": 60,
+      "maxCapacity": 500,
+      "currentVisitors": 300,
+      "trend": "increasing",
+      "recommendation": "やや混雑しています。午前中がおすすめです。"
+    },
+    {
+      "id": "crowd_002",
+      "name": "てつのくじら館",
+      "latitude": 34.2405,
+      "longitude": 132.5502,
+      "currentCrowding": "low",
+      "crowdingLevel": 25,
+      "maxCapacity": 300,
+      "currentVisitors": 75,
+      "trend": "stable",
+      "recommendation": "空いています。今が見学のチャンスです！"
+    },
+    {
+      "id": "crowd_003",
+      "name": "呉市中央図書館",
+      "latitude": 34.2482,
+      "longitude": 132.5648,
+      "currentCrowding": "high",
+      "crowdingLevel": 85,
+      "maxCapacity": 200,
+      "currentVisitors": 170,
+      "trend": "stable",
+      "recommendation": "混雑しています。平日午前中の利用をおすすめします。"
+    },
+    {
+      "id": "crowd_004",
+      "name": "呉市総合体育館",
+      "latitude": 34.2453,
+      "longitude": 132.5515,
+      "currentCrowding": "low",
+      "crowdingLevel": 20,
+      "maxCapacity": 400,
+      "currentVisitors": 80,
+      "trend": "stable",
+      "recommendation": "空いています。快適に利用できます。"
+    },
+    {
+      "id": "crowd_005",
+      "name": "呉市役所",
+      "latitude": 34.24881375,
+      "longitude": 132.5655759,
+      "currentCrowding": "medium",
+      "crowdingLevel": 55,
+      "maxCapacity": 500,
+      "currentVisitors": 275,
+      "trend": "decreasing",
+      "recommendation": "普通の混雑度です。15時以降が比較的空いています。"
+    },
+    {
+      "id": "crowd_006",
+      "name": "呉ポートピアパーク",
+      "latitude": 34.2920,
+      "longitude": 132.5086,
+      "currentCrowding": "low",
+      "crowdingLevel": 15,
+      "maxCapacity": 1000,
+      "currentVisitors": 150,
+      "trend": "stable",
+      "recommendation": "のびのび遊べます。ファミリーにおすすめです！"
+    }
+  ],
+  "heatmapData": [
+    {"lat": 34.2401, "lng": 132.5495, "intensity": 0.8},
+    {"lat": 34.2405, "lng": 132.5502, "intensity": 0.3},
+    {"lat": 34.2482, "lng": 132.5648, "intensity": 0.9},
+    {"lat": 34.2453, "lng": 132.5515, "intensity": 0.2},
+    {"lat": 34.24881375, "lng": 132.5655759, "intensity": 0.6},
+    {"lat": 34.2920, "lng": 132.5086, "intensity": 0.2},
+    {"lat": 34.2473, "lng": 132.5656, "intensity": 0.7},
+    {"lat": 34.2361, "lng": 132.5584, "intensity": 0.5},
+    {"lat": 34.2397, "lng": 132.5625, "intensity": 0.4},
+    {"lat": 34.1927, "lng": 132.5366, "intensity": 0.3}
+  ]
+}
