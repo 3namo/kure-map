@@ -1,0 +1,127 @@
+{
+  "metadata": {
+    "name": "呉市防災・安全情報",
+    "category": "emergency",
+    "lastUpdated": "2025-10-01"
+  },
+  "facilities": [
+    {
+      "id": "emg_001",
+      "name": "呉市役所（避難所）",
+      "category": "避難所",
+      "type": "evacuation",
+      "description": "指定避難所、災害対策本部",
+      "address": "呉市中央4-1-6",
+      "latitude": "34.24881375",
+      "longitude": "132.5655759",
+      "capacity": "500人",
+      "facilities": ["水", "食料", "毛布", "医療"],
+      "barrierFree": true,
+      "phone": "0823-25-3100"
+    },
+    {
+      "id": "emg_002",
+      "name": "つばき会館（避難所）",
+      "category": "避難所",
+      "type": "evacuation",
+      "description": "指定避難所、生涯学習センター",
+      "address": "呉市中央6-2-9",
+      "latitude": "34.25014081",
+      "longitude": "132.5665595",
+      "capacity": "300人",
+      "facilities": ["水", "食料", "毛布"],
+      "barrierFree": true,
+      "phone": "0823-25-3466"
+    },
+    {
+      "id": "emg_003",
+      "name": "呉中央小学校（避難所）",
+      "category": "避難所",
+      "type": "evacuation",
+      "description": "指定避難所",
+      "address": "呉市西中央3-7-1",
+      "latitude": "34.2455",
+      "longitude": "132.5625",
+      "capacity": "800人",
+      "facilities": ["水", "食料", "毛布", "体育館"],
+      "barrierFree": true,
+      "phone": "0823-21-3015"
+    },
+    {
+      "id": "aed_001",
+      "name": "呉駅（AED設置）",
+      "category": "AED",
+      "type": "aed",
+      "description": "駅構内にAED設置",
+      "address": "呉市中央1-1",
+      "latitude": "34.2473",
+      "longitude": "132.5656",
+      "location": "改札付近",
+      "available24h": false,
+      "availableHours": "始発-終電"
+    },
+    {
+      "id": "aed_002",
+      "name": "大和ミュージアム（AED設置）",
+      "category": "AED",
+      "type": "aed",
+      "description": "館内にAED設置",
+      "address": "呉市宝町5-20",
+      "latitude": "34.2401",
+      "longitude": "132.5495",
+      "location": "1階エントランス",
+      "available24h": false,
+      "availableHours": "9:00-18:00"
+    },
+    {
+      "id": "aed_003",
+      "name": "呉市役所（AED設置）",
+      "category": "AED",
+      "type": "aed",
+      "description": "庁舎内にAED設置",
+      "address": "呉市中央4-1-6",
+      "latitude": "34.24881375",
+      "longitude": "132.5655759",
+      "location": "1階ロビー",
+      "available24h": false,
+      "availableHours": "8:30-17:15"
+    },
+    {
+      "id": "aed_004",
+      "name": "呉市総合体育館（AED設置）",
+      "category": "AED",
+      "type": "aed",
+      "description": "館内にAED設置",
+      "address": "呉市二河町1-1",
+      "latitude": "34.2453",
+      "longitude": "132.5515",
+      "location": "1階受付",
+      "available24h": false,
+      "availableHours": "9:00-22:00"
+    },
+    {
+      "id": "police_001",
+      "name": "呉警察署",
+      "category": "警察署",
+      "type": "police",
+      "description": "呉市の警察署",
+      "address": "呉市中央6-5-17",
+      "latitude": "34.2511",
+      "longitude": "132.5672",
+      "phone": "0823-25-0110",
+      "emergency": "110"
+    },
+    {
+      "id": "fire_001",
+      "name": "呉市消防局",
+      "category": "消防署",
+      "type": "fire",
+      "description": "呉市の消防本部",
+      "address": "呉市中央2-9-2",
+      "latitude": "34.2468",
+      "longitude": "132.5644",
+      "phone": "0823-26-0119",
+      "emergency": "119"
+    }
+  ]
+}
