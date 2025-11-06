@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="呉市のWi-Fiスポット利用者数を地図上で可視化します">
-    <meta name="keywords" content="呉市,Wi-Fi,くれまちWi-Fi,地図,利用者数">
-    <title>くれまちWi-Fi利用者マップ</title>
+    <meta name="description" content="呉市の住民と観光客のウェルビーイング向上を目指す総合地図アプリ">
+    <meta name="keywords" content="呉市,Wi-Fi,観光,施設,防災,イベント,くれまちWi-Fi,地図,ウェルビーイング">
+    <title>くれウェルビーイングマップ | 呉市総合地図アプリ</title>
 
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -14,18 +14,183 @@
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-    <!-- 地図コンテナ -->
-    <div id="map-container">
-        <!-- 情報パネル -->
-        <div class="info-panel">
-            <h2>くれまちWi-Fi利用者マップ</h2>
-            <p>📅 2025年10月1日</p>
-            <p>📍 23地点</p>
-            <p>👥 総利用者数: <span id="total-users">-</span>人</p>
-        </div>
+    <!-- アプリケーションコンテナ -->
+    <div id="app-container">
+        <!-- サイドバー -->
+        <aside id="sidebar">
+            <!-- サイドバーヘッダー -->
+            <div class="sidebar-header">
+                <h1>🗺️ くれウェルビーイングマップ</h1>
+                <p>呉市の暮らしと観光を支える総合情報</p>
+            </div>
 
-        <!-- 地図表示エリア -->
-        <div id="map"></div>
+            <!-- 統計情報セクション -->
+            <section class="sidebar-section">
+                <h3>📊 統計情報</h3>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="value" id="stat-total-spots">-</div>
+                        <div class="label">総スポット数</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="value" id="stat-wifi-users">-</div>
+                        <div class="label">Wi-Fi利用者</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="value" id="stat-events">-</div>
+                        <div class="label">開催中イベント</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="value" id="stat-facilities">-</div>
+                        <div class="label">公共施設</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 検索セクション -->
+            <section class="sidebar-section">
+                <h3>🔍 検索</h3>
+                <div class="search-bar">
+                    <input
+                        type="text"
+                        id="search-input"
+                        placeholder="施設名、住所で検索..."
+                        aria-label="スポット検索"
+                    >
+                    <span class="search-icon">🔍</span>
+                </div>
+            </section>
+
+            <!-- カテゴリフィルターセクション -->
+            <section class="sidebar-section">
+                <h3>🏷️ カテゴリ</h3>
+                <div class="filter-group">
+                    <div class="filter-item" data-category="wifi">
+                        <input type="checkbox" id="filter-wifi" checked>
+                        <span class="icon">📶</span>
+                        <span class="label">Wi-Fiスポット</span>
+                        <span class="count" id="count-wifi">23</span>
+                    </div>
+                    <div class="filter-item" data-category="tourism">
+                        <input type="checkbox" id="filter-tourism" checked>
+                        <span class="icon">🏯</span>
+                        <span class="label">観光スポット</span>
+                        <span class="count" id="count-tourism">8</span>
+                    </div>
+                    <div class="filter-item" data-category="facility">
+                        <input type="checkbox" id="filter-facility" checked>
+                        <span class="icon">🏢</span>
+                        <span class="label">公共施設</span>
+                        <span class="count" id="count-facility">6</span>
+                    </div>
+                    <div class="filter-item" data-category="event">
+                        <input type="checkbox" id="filter-event" checked>
+                        <span class="icon">🎉</span>
+                        <span class="label">イベント</span>
+                        <span class="count" id="count-event">5</span>
+                    </div>
+                    <div class="filter-item" data-category="emergency">
+                        <input type="checkbox" id="filter-emergency" checked>
+                        <span class="icon">🚨</span>
+                        <span class="label">防災・AED</span>
+                        <span class="count" id="count-emergency">9</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- おすすめルートセクション -->
+            <section class="sidebar-section">
+                <h3>🚶 おすすめルート</h3>
+                <div class="filter-group">
+                    <div class="filter-item">
+                        <span class="icon">🏛️</span>
+                        <span class="label">歴史めぐりコース</span>
+                        <span class="count">2時間</span>
+                    </div>
+                    <div class="filter-item">
+                        <span class="icon">🌊</span>
+                        <span class="label">海辺の散策コース</span>
+                        <span class="count">1.5時間</span>
+                    </div>
+                    <div class="filter-item">
+                        <span class="icon">🏃</span>
+                        <span class="label">健康ウォーキング</span>
+                        <span class="count">5km</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 情報セクション -->
+            <section class="sidebar-section">
+                <h3>ℹ️ 情報</h3>
+                <p style="font-size: 13px; color: #666; line-height: 1.6;">
+                    このマップは呉市のオープンデータ「データプラットフォームくれ」を活用しています。
+                    <br><br>
+                    📅 最終更新: 2025年10月1日
+                </p>
+            </section>
+        </aside>
+
+        <!-- 地図コンテナ -->
+        <main id="map-container">
+            <!-- サイドバートグルボタン -->
+            <button id="sidebar-toggle" aria-label="サイドバーを開閉">
+                ☰
+            </button>
+
+            <!-- クイックフィルター -->
+            <div class="quick-filters">
+                <button class="quick-filter-btn wifi active" data-filter="wifi">
+                    📶 Wi-Fi
+                </button>
+                <button class="quick-filter-btn tourism active" data-filter="tourism">
+                    🏯 観光
+                </button>
+                <button class="quick-filter-btn facility active" data-filter="facility">
+                    🏢 施設
+                </button>
+                <button class="quick-filter-btn event active" data-filter="event">
+                    🎉 イベント
+                </button>
+                <button class="quick-filter-btn emergency active" data-filter="emergency">
+                    🚨 防災
+                </button>
+            </div>
+
+            <!-- 地図表示エリア -->
+            <div id="map"></div>
+
+            <!-- 凡例 -->
+            <div class="legend">
+                <h4>凡例</h4>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: var(--wifi-color);"></div>
+                    <span>Wi-Fiスポット</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: var(--tourism-color);"></div>
+                    <span>観光スポット</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: var(--facility-color);"></div>
+                    <span>公共施設</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: var(--event-color);"></div>
+                    <span>イベント</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: var(--emergency-color);"></div>
+                    <span>防災・AED</span>
+                </div>
+            </div>
+
+            <!-- ローディング表示 -->
+            <div id="loading" class="loading hidden">
+                <div class="spinner"></div>
+                <p>読み込み中...</p>
+            </div>
+        </main>
     </div>
 
     <!-- Leaflet JavaScript -->
