@@ -67,8 +67,8 @@
       "type": "aed",
       "description": "館内にAED設置",
       "address": "呉市宝町5-20",
-      "latitude": "34.2401",
-      "longitude": "132.5495",
+      "latitude": "34.24140",
+      "longitude": "132.55606",
       "location": "1階エントランス",
       "available24h": false,
       "availableHours": "9:00-18:00"
@@ -92,9 +92,9 @@
       "category": "AED",
       "type": "aed",
       "description": "館内にAED設置",
-      "address": "呉市二河町1-1",
-      "latitude": "34.2453",
-      "longitude": "132.5515",
+      "address": "呉市広大新開1-7-1",
+      "latitude": "34.23244",
+      "longitude": "132.62639",
       "location": "1階受付",
       "available24h": false,
       "availableHours": "9:00-22:00"
